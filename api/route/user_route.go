@@ -15,6 +15,7 @@ func NewUserRoute(e *echo.Group, db *gorm.DB) {
 
 	userRoute := e.Group("/users")
 	userRoute.Use(middleware.ClerkJwtMiddleware(), middleware.JwtAuthMiddleware)
+	userRoute.GET("/user/:userid", uc.GetByUserId)
 
 	adminRoute := userRoute.Group("/admin")
 	adminRoute.Use(middleware.ClerkJwtMiddleware(), middleware.JwtAuthMiddleware, middleware.WithAdminRole)

@@ -2,8 +2,11 @@ package repository
 
 import (
 	"context"
+	"errors"
+	"log"
 
 	"github.com/d1nnn/domain"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -24,7 +27,47 @@ func (tr *PostgresTransactionRepository) GetAllByUserId(c context.Context, userI
 	return transactions, tx.Error
 }
 func (tr *PostgresTransactionRepository) Create(c context.Context, transaction domain.Transaction) error {
-	tx := tr.db.Save(&transaction)
+	log.Println("transaction repo: ", transaction)
+
+	currentUser := domain.AppUser{
+		ID: transaction.UserID,
+	}
+	targetUser := domain.AppUser{
+		ID: transaction.PayeeID,
+	}
+	tx := tr.db.Find(&currentUser)
+	if tx.Error != nil {
+		return tx.Error
+	}
+	log.Println("current user: ", currentUser)
+
+	tx = tr.db.Find(&targetUser)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	log.Println("target user: ", targetUser)
+	if currentUser.Balance < transaction.Amount {
+
+		var ErrInsufficientBalance = errors.New("current user doesn't have enough balance")
+		return ErrInsufficientBalance
+	}
+
+	currentUser.Balance -= transaction.Amount
+	targetUser.Balance += transaction.Amount
+
+	tx = tr.db.Save(&currentUser)
+	if tx.Error != nil {
+		return tx.Error
+	}
+	tx = tr.db.Save(&targetUser)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	transaction.ID = uuid.New().String()
+
+	tx = tr.db.Save(&transaction)
 
 	return tx.Error
 }

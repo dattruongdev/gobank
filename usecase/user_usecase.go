@@ -23,3 +23,6 @@ func (uu *UserUsecase) GetUsers(c context.Context, userId string) ([]domain.AppU
 func (uu *UserUsecase) GetByEmail(c context.Context, email string) (domain.AppUser, error) {
 	return uu.userRepository.GetByEmail(c, email)
 }
+func (uu *UserUsecase) GetById(c context.Context, userId string) (domain.AppUser, error) {
+	return uu.userRepository.GetById(c, userId)
+}

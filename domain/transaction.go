@@ -6,14 +6,13 @@ import (
 )
 
 type Transaction struct {
-	ID         string    `json:"transaction_id"`
-	Amount     float64   `json:"amount"`
-	Date       time.Time `json:"date"`
-	UserID     string    `json:"user_id"`
-	PayeeID    string    `json:"-"`
-	CategoryID string    `json:"-"`
-	Payee      AppUser   `json:"payee" gorm:"foreignKey:PayeeID"`
-	Category   Category  `json:"category" gorm:"foreignKey:CategoryID"`
+	ID          string    `json:"id" gorm:"primaryKey"`
+	Amount      float64   `json:"amount" gorm:"default:0.0"`
+	Date        time.Time `json:"date" gorm:"default:current_timestamp"`
+	UserID      string    `json:"user_id" gorm:"not null"`
+	CurrentUser AppUser   `json:"current_user" gorm:"foreignKey:UserID"`
+	PayeeID     string    `json:"-" gorm:"not null"`
+	Payee       AppUser   `json:"payee" gorm:"foreignKey:PayeeID"`
 }
 
 type TransactionRepository interface {

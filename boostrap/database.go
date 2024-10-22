@@ -9,14 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type User struct {
-	gorm.Model
-	Id string `json:"ID"`
-	Addr string `json:"address"`
-	Name string `json:"name"`
-}
-
-
 func NewPostgresqlDatabase(env *Env) *gorm.DB {
 	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	// defer cancel()
@@ -33,7 +25,7 @@ func NewPostgresqlDatabase(env *Env) *gorm.DB {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.AutoMigrate(domain.AppUser{}, domain.Transaction{}, domain.Category{})
+	db.AutoMigrate(&domain.Transaction{}, &domain.AppUser{}, &domain.Preset{})
 
 	return db
 }

@@ -11,4 +11,5 @@ func SetupRoutes(e *echo.Echo, db *gorm.DB) {
 	NewAuthRoute(v1, db)
 	NewTransactionRoute(v1, db)
 	NewUserRoute(v1, db)
+	NewPresetRoute(v1, db)
 }

@@ -28,7 +28,6 @@ type Response struct {
 
 func (ac *AuthController) SignUp(c echo.Context) error {
 	jsonBody := make(map[string]interface{})
-	log.Println("REQUEST COMING IN")
 
 	err := json.NewDecoder(c.Request().Body).Decode(&jsonBody)
 	if err != nil {
@@ -42,6 +41,7 @@ func (ac *AuthController) SignUp(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Fetching user from db failed")
 	}
+	log.Println(user.Email, email)
 	if user.Email == email {
 		return c.String(http.StatusConflict, "User already exists")
 	}
