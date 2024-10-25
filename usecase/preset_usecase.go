@@ -11,16 +11,19 @@ type PresetUsecase struct {
 }
 
 func NewPresetUsecase(repo domain.PresetRepository) *PresetUsecase {
-	return &PresetUsecase {
+	return &PresetUsecase{
 		presetRepository: repo,
 	}
 }
 
 func (pu *PresetUsecase) GetAll(c context.Context, userId string) ([]domain.Preset, error) {
-	return pu.presetRepository.GetAll(c, userId);
+	return pu.presetRepository.GetAll(c, userId)
 }
 
 func (pu *PresetUsecase) Create(c context.Context, preset domain.Preset) error {
 	return pu.presetRepository.Create(c, preset)
 }
 
+func (pu *PresetUsecase) Delete(c context.Context, payerId string, payeeIds ...string) error {
+	return pu.presetRepository.Delete(c, payerId, payeeIds...)
+}

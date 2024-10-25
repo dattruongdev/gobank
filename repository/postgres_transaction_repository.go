@@ -8,6 +8,7 @@ import (
 	"github.com/d1nnn/domain"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PostgresTransactionRepository struct {
@@ -29,45 +30,78 @@ func (tr *PostgresTransactionRepository) GetAllByUserId(c context.Context, userI
 func (tr *PostgresTransactionRepository) Create(c context.Context, transaction domain.Transaction) error {
 	log.Println("transaction repo: ", transaction)
 
-	currentUser := domain.AppUser{
-		ID: transaction.UserID,
-	}
-	targetUser := domain.AppUser{
-		ID: transaction.PayeeID,
-	}
-	tx := tr.db.Find(&currentUser)
-	if tx.Error != nil {
-		return tx.Error
-	}
-	log.Println("current user: ", currentUser)
-
-	tx = tr.db.Find(&targetUser)
-	if tx.Error != nil {
-		return tx.Error
-	}
-
-	log.Println("target user: ", targetUser)
-	if currentUser.Balance < transaction.Amount {
-
-		var ErrInsufficientBalance = errors.New("current user doesn't have enough balance")
-		return ErrInsufficientBalance
-	}
-
-	currentUser.Balance -= transaction.Amount
-	targetUser.Balance += transaction.Amount
-
-	tx = tr.db.Save(&currentUser)
-	if tx.Error != nil {
-		return tx.Error
-	}
-	tx = tr.db.Save(&targetUser)
-	if tx.Error != nil {
-		return tx.Error
-	}
-
 	transaction.ID = uuid.New().String()
 
-	tx = tr.db.Save(&transaction)
+	tx := tr.db.Save(&transaction)
+
+	return tx.Error
+}
+
+func (tr *PostgresTransactionRepository) GetPendings(c context.Context, userId string) ([]domain.Transaction, error) {
+	var transactions []domain.Transaction
+	tx := tr.db.Where("status = 'PENDING'").Find(&transactions)
+
+	return transactions, tx.Error
+}
+
+func (tr *PostgresTransactionRepository) ApproveTransactions(c context.Context, txIds ...string) error {
+	err := tr.db.Transaction(func(tx *gorm.DB) error {
+		var transactions []domain.Transaction
+		if err := tx.Where("id in (?)", txIds).Find(&transactions).Error; err != nil {
+			return err
+		}
+		for _, transaction := range transactions {
+			currentUser := domain.AppUser{
+				ID: transaction.UserID,
+			}
+			targetUser := domain.AppUser{
+				ID: transaction.PayeeID,
+			}
+			err := tx.Find(&currentUser).Error
+			if err != nil {
+				return tx.Rollback().Error
+			}
+
+			err = tx.Find(&targetUser).Error
+			if err != nil {
+				return tx.Rollback().Error
+			}
+
+			if currentUser.Balance < transaction.Amount {
+
+				var ErrInsufficientBalance = errors.New("current user doesn't have enough balance")
+				return ErrInsufficientBalance
+			}
+
+			currentUser.Balance -= transaction.Amount
+			targetUser.Balance += transaction.Amount
+
+			err = tx.Save(&currentUser).Error
+			if err != nil {
+				return tx.Rollback().Error
+			}
+			err = tx.Save(&targetUser).Error
+			if err != nil {
+				return tx.Rollback().Error
+			}
+		}
+
+		err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			DoUpdates: clause.Assignments(map[string]interface{}{"status": "COMPLETED"}),
+		}).Create(&transactions).Error
+		if err != nil {
+			return tx.Rollback().Error
+		}
+
+		return nil
+	})
+
+	return err
+}
+
+func (tr *PostgresTransactionRepository) DeleteTransactions(c context.Context, txIds ...string) error {
+	tx := tr.db.Where("id in (?)", txIds).Delete(&domain.Transaction{})
 
 	return tx.Error
 }

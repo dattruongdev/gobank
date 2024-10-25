@@ -27,3 +27,9 @@ func (pr *PostgresPresetRepository) GetAll(c context.Context, userId string) ([]
 	tx := pr.db.Preload("Payee").Where("payer_id = ?", userId).Find(&presets)
 	return presets, tx.Error
 }
+
+func (pr *PostgresPresetRepository) Delete(c context.Context, payerId string, payeeIds ...string) error {
+	tx := pr.db.Where("payee_id IN (?) and payer_id = ?", payeeIds, payerId).Delete(&domain.Preset{})
+
+	return tx.Error
+}

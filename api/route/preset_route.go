@@ -18,4 +18,5 @@ func NewPresetRoute(e *echo.Group, db *gorm.DB) {
 
 	presetRoute.GET("/user/:userid", pc.GetAllFromUser)
 	presetRoute.POST("", pc.CreatePreset)
+	presetRoute.POST("/delete", pc.DeletePreset)
 }

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/d1nnn/domain"
@@ -31,6 +32,44 @@ func (pc *PresetController) GetAllFromUser(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, presets)
+}
+
+func (pc *PresetController) DeletePreset(c echo.Context) error {
+	log.Println("HELLOOOOOO")
+	jsonBody := make(map[string]interface{})
+
+	err := json.NewDecoder(c.Request().Body).Decode(&jsonBody)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &Response{
+			Message: err.Error(),
+			Status:  400,
+		})
+	}
+
+	payerId := jsonBody["payerId"].(string)
+	var payeeIds []string
+	if ids, ok := jsonBody["payeeIds"].([]interface{}); ok {
+		for _, id := range ids {
+			if str, ok := id.(string); ok {
+				payeeIds = append(payeeIds, str)
+			} else {
+				// Handle the case where the type is not string, if necessary
+			}
+		}
+	}
+
+	err = pc.presetUsecase.Delete(c.Request().Context(), payerId, payeeIds...)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, &Response{
+			Message: err.Error(),
+			Status:  500,
+		})
+	}
+
+	return c.JSON(http.StatusOK, &Response{
+		Message: "Deleted successfully",
+		Status:  200,
+	})
 }
 
 func (pc *PresetController) CreatePreset(c echo.Context) error {
